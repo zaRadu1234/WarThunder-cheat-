@@ -1,0 +1,119 @@
+class RoundInfo
+{
+	public:
+	char* name; //0x0000
+	char pad_0008[4]; //0x0008
+	float mass; //0x000C
+	float caliber; //0x0010
+	float length; //0x0014
+	char pad_0018[32]; //0x0018
+	float velocity; //0x0038
+
+	public:
+	std::string get_round_name()
+	{
+		char buf[32];
+		auto weapon_name_ptr = driver->read<uintptr_t>((uintptr_t)this);
+		driver->read(weapon_name_ptr, &buf, sizeof(buf));
+		return std::string(buf);
+	}
+
+	float get_mass()
+	{
+		return driver->read<float>((uintptr_t)this + 0xC);
+	}
+
+	float get_caliber()
+	{
+		return driver->read<float>((uintptr_t)this + 0x10);
+	}
+
+	float get_length()
+	{
+		return driver->read<float>((uintptr_t)this + 0x14);
+	}
+
+	float get_velocity()
+	{
+		return driver->read<float>((uintptr_t)this + 0x38);
+	}
+}; //Size: 0x003C
+
+class RoundInfoPtr
+{
+	public:
+	class RoundInfo* roundinfo; //0x0000
+}; //Size: 0x0008
+
+class Weapon
+{
+	public:
+	char* name; //0x0000
+	char pad_0008[144]; //0x0008
+	class RoundInfoPtr* round_info; //0x0098
+ 
+public:
+	std::string get_weapon_name()
+	{
+		char buf[0x50];
+		auto weapon_name_ptr = driver->read<uintptr_t>((uintptr_t)this);
+		driver->read(weapon_name_ptr, &buf, sizeof(buf));
+		return std::string(buf);
+	}
+
+	RoundInfo* get_round_info()
+	{
+		auto round_info_ptr = driver->read<uintptr_t>((uintptr_t)this + 0x98);
+		if (!round_info_ptr)
+			return nullptr;
+
+		return (RoundInfo*)driver->read<uintptr_t>(round_info_ptr);
+	}
+}; //Size: 0x00A0
+
+class WeaponPtr
+{
+	public:
+	char pad_0000[688]; //0x0000
+	class Weapon* weapon; //0x02B0
+}; //Size: 0x02B8
+
+class WeaponArrayC
+{
+	public:
+	class WeaponPtr* weapon1; //0x0000
+	class WeaponPtr* weapon2; //0x0008
+	class WeaponPtr* weapon3; //0x0010
+	class WeaponPtr* weapon4; //0x0018
+	class WeaponPtr* waepon5; //0x0020
+}; //Size: 0x0028
+
+class TurretC
+{
+	public:
+	char pad_0000[416]; //0x0000
+	int32_t weaponcount1; //0x01A0
+	char pad_01A4[76]; //0x01A4
+	int32_t weaponcount2; //0x01F0
+	char pad_01F4[220]; //0x01F4
+	class WeaponArrayC* weapon_array; //0x02D0
+ 
+public:
+	int32_t get_weapon_count()
+	{
+		return driver->read<int32_t>((uintptr_t)this + 0x1A0);
+	}
+
+	Weapon* get_weapon(int index)
+	{
+		auto weapon_array = driver->read<uintptr_t>((uintptr_t)this + 0x2D0);
+		if (!weapon_array)
+			return nullptr;
+
+		auto weapon_ptr = driver->read<uintptr_t>(weapon_array + (index * sizeof(uintptr_t)));
+		if (!weapon_ptr)
+			return nullptr;
+
+		return (Weapon*)driver->read<uintptr_t>(weapon_ptr + 0x2B0);
+	}
+}; //Size: 0x02D8
